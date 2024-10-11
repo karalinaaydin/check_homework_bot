@@ -8,7 +8,7 @@ import requests
 from dotenv import load_dotenv
 from telebot import TeleBot
 
-from exceptions import APIResponseError
+from exceptions import APIResponseError, MissingTokenError
 
 load_dotenv()
 
@@ -71,6 +71,7 @@ def check_tokens():
     if missing_tokens:
         logger.critical(
             MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
+        raise MissingTokenError
 
 
 def get_api_answer(timestamp):
@@ -147,8 +148,10 @@ def send_message(bot, message):
 
 def main():
     """Основная логика работы бота."""
-    if not check_tokens():
-        logger.error(PROGRAM_STOPPED_ERROR)
+    try:
+        check_tokens()
+    except MissingTokenError as e:
+        logger.critical(PROGRAM_STOPPED_ERROR.format(error=e))
         return
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
