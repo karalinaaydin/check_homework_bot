@@ -164,7 +164,7 @@ def send_if_new_message(bot, message, last_message):
 
 def main():
     """Основная логика работы бота."""
-    if not check_tokens():
+    if check_tokens() is False:
         logger.error(PROGRAM_STOPPED_ERROR)
         return
 
