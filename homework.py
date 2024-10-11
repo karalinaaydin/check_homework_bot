@@ -86,7 +86,7 @@ def get_api_answer(timestamp):
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     except requests.RequestException as req_err:
         logger.error(API_REQUEST_ERROR.format(error=req_err, params=params))
-        raise
+        raise APIResponseError
 
     if response.status_code != HTTPStatus.OK:
         logger.error(
