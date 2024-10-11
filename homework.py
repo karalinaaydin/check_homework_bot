@@ -170,7 +170,8 @@ def main():
             if message != last_message:
                 send_message(bot, message)
                 last_message = message
-        time.sleep(RETRY_PERIOD)
+        finally:
+            time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
