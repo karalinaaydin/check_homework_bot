@@ -160,9 +160,14 @@ def main():
             if homeworks:
                 message = parse_status(homeworks[0])
                 if message != last_message:
-                    send_message(bot, message)
-                    last_message = message
-                timestamp = response.get('current_date', timestamp)
+                    try:
+                        send_message(bot, message)
+                        last_message = message
+                        timestamp = response.get('current_date', timestamp)
+                    except Exception as telegram_error:
+                        logger.error(
+                            SEND_MESSAGE_ERROR.format(
+                                error=telegram_error, message=message))
             else:
                 logger.debug(NO_NEW_STATUSES)
         except Exception as error:
