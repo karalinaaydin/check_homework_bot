@@ -74,7 +74,7 @@ def check_tokens():
     if missing_tokens:
         logger.critical(
             MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
-        raise NameError(
+        raise RuntimeError(
             MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
 
 
