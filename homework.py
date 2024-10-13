@@ -8,12 +8,12 @@ import requests
 from dotenv import load_dotenv
 from telebot import TeleBot
 
-<<<<<<< HEAD
-from exceptions import (APIResponseError, MissingTokensError,
-                        ProgramError, SendMessageError)
-=======
-from exceptions import APIResponseError, MissingTokenError
->>>>>>> 399cfce23bb185cd063b38ba800dbf20a3830cb7
+from exceptions import (
+    APIResponseError,
+    MissingTokensError,
+    ProgramError,
+    SendMessageError
+)
 
 load_dotenv()
 
@@ -76,11 +76,7 @@ def check_tokens():
     if missing_tokens:
         logger.critical(
             MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
-<<<<<<< HEAD
         raise MissingTokensError
-=======
-        raise MissingTokenError
->>>>>>> 399cfce23bb185cd063b38ba800dbf20a3830cb7
 
 
 def get_api_answer(timestamp):
@@ -102,7 +98,6 @@ def get_api_answer(timestamp):
             API_RESPONSE_ERROR.format(
                 status_code=response.status_code, params=request_params))
     response_json = response.json()
-<<<<<<< HEAD
     if 'code' in response_json or 'error' in response_json:
         error_message = response_json.get('error', 'Неизвестная ошибка')
         logger.error(
@@ -121,17 +116,6 @@ def get_api_answer(timestamp):
         error_message = response_json.get(found_key, 'Неизвестная ошибка')
         raise APIResponseError(
             API_RETURNED_ERROR.format(
-=======
-    found_key = None
-    if 'code' in response_json:
-        found_key = 'code'
-    elif 'error' in response_json:
-        found_key = 'error'
-    if found_key:
-        error_message = response_json.get(found_key, 'Неизвестная ошибка')
-        raise APIResponseError(
-            API_RETURNED_ERROR.format(
->>>>>>> 399cfce23bb185cd063b38ba800dbf20a3830cb7
                 error_message=error_message, params=request_params,
                 key=found_key, value=response_json[found_key]))
     return response_json
@@ -178,7 +162,6 @@ def send_message(bot, message):
             SEND_MESSAGE_ERROR.format(error=e, message=message))
 
 
-<<<<<<< HEAD
 def handle_homework_response(bot, homeworks, last_message, timestamp,
                              response):
     """Обрабатывает успешный ответ от API и отправляет сообщение."""
@@ -210,18 +193,11 @@ def handle_program_error(bot, error, last_message):
     return last_message
 
 
-=======
->>>>>>> 399cfce23bb185cd063b38ba800dbf20a3830cb7
 def main():
     """Основная логика работы бота."""
     try:
         check_tokens()
-<<<<<<< HEAD
     except MissingTokensError:
-=======
-    except MissingTokenError as e:
-        logger.critical(PROGRAM_STOPPED_ERROR.format(error=e))
->>>>>>> 399cfce23bb185cd063b38ba800dbf20a3830cb7
         return
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
@@ -230,31 +206,10 @@ def main():
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
-<<<<<<< HEAD
             last_message, timestamp = handle_homework_response(
                 bot, homeworks, last_message, timestamp, response)
         except ProgramError as error:
             last_message = handle_program_error(bot, error, last_message)
-=======
-            if homeworks:
-                message = parse_status(homeworks[0])
-                if message != last_message:
-                    try:
-                        send_message(bot, message)
-                        last_message = message
-                        timestamp = response.get('current_date', timestamp)
-                    except Exception as telegram_error:
-                        logger.error(
-                            SEND_MESSAGE_ERROR.format(
-                                error=telegram_error, message=message))
-            else:
-                logger.debug(NO_NEW_STATUSES)
-        except Exception as error:
-            message = PROGRAM_ERROR.format(error=error)
-            if message != last_message:
-                send_message(bot, message)
-                last_message = message
->>>>>>> 399cfce23bb185cd063b38ba800dbf20a3830cb7
         finally:
             time.sleep(RETRY_PERIOD)
 
