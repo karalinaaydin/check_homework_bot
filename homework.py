@@ -74,7 +74,7 @@ def check_tokens():
     if missing_tokens:
         logger.critical(
             MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
-        raise ValueError(
+        raise NameError(
             MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
 
 
@@ -98,10 +98,8 @@ def get_api_answer(timestamp):
     response_json = response.json()
     for found_key in ['code', 'error']:
         if found_key in response_json:
-            error_message = response_json.get(found_key, 'Неизвестная ошибка')
             raise APIResponseError(
                 API_RETURNED_ERROR.format(
-                    error_message=error_message,
                     params=request_params,
                     key=found_key,
                     value=response_json[found_key]
@@ -167,7 +165,8 @@ def main():
                 message = parse_status(homeworks[0])
                 timestamp = response.get('current_date', timestamp)
             else:
-                message = NO_NEW_STATUSES
+                logger.debug(NO_NEW_STATUSES)
+                message = None
         except Exception as error:
             message = PROGRAM_ERROR.format(error=error)
         if message != last_message:
