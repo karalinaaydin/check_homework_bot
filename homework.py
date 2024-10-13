@@ -10,8 +10,6 @@ from telebot import TeleBot
 
 from exceptions import (
     APIResponseError,
-    MissingTokensError,
-    ProgramError,
     SendMessageError
 )
 
@@ -76,48 +74,39 @@ def check_tokens():
     if missing_tokens:
         logger.critical(
             MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
-        raise MissingTokensError
+        raise ValueError(
+            MISSING_TOKENS_ERROR.format(missing_tokens=missing_tokens))
 
 
 def get_api_answer(timestamp):
     """Делает запрос к API сервиса Практикум Домашка."""
-    params = {'from_date': timestamp}
     request_params = {
         'url': ENDPOINT,
         'headers': HEADERS,
-        'params': params
+        'params': {'from_date': timestamp}
     }
     try:
         response = requests.get(**request_params)
     except requests.RequestException as req_err:
-        raise OSError(
+        raise ConnectionError(
             API_REQUEST_ERROR.format(error=req_err, params=request_params)
         )
     if response.status_code != HTTPStatus.OK:
-        raise OSError(
+        raise APIResponseError(
             API_RESPONSE_ERROR.format(
                 status_code=response.status_code, params=request_params))
     response_json = response.json()
-    if 'code' in response_json or 'error' in response_json:
-        error_message = response_json.get('error', 'Неизвестная ошибка')
-        logger.error(
-            API_RETURNED_ERROR.format(
-                error_message=error_message, params=params))
-        raise APIResponseError(
-            API_RETURNED_ERROR.format(
-                error_message=error_message, params=params))
-    response_json = response.json()
-    found_key = None
-    if 'code' in response_json:
-        found_key = 'code'
-    elif 'error' in response_json:
-        found_key = 'error'
-    if found_key:
-        error_message = response_json.get(found_key, 'Неизвестная ошибка')
-        raise APIResponseError(
-            API_RETURNED_ERROR.format(
-                error_message=error_message, params=request_params,
-                key=found_key, value=response_json[found_key]))
+    for found_key in ['code', 'error']:
+        if found_key in response_json:
+            error_message = response_json.get(found_key, 'Неизвестная ошибка')
+            raise APIResponseError(
+                API_RETURNED_ERROR.format(
+                    error_message=error_message,
+                    params=request_params,
+                    key=found_key,
+                    value=response_json[found_key]
+                )
+            )
     return response_json
 
 
@@ -140,15 +129,16 @@ def parse_status(homework):
     """Извлекает статус домашней работы."""
     if 'homework_name' not in homework:
         raise KeyError(
-            MISSING_KEY_ERROR.format(key='homework_name', homework=homework))
+            MISSING_KEY_ERROR.format(key='homework_name'))
     if 'status' not in homework:
         raise KeyError(
-            MISSING_KEY_ERROR.format(key='status', homework=homework))
+            MISSING_KEY_ERROR.format(key='status'))
     status = homework['status']
-    name = homework['homework_name']
     if status not in HOMEWORK_VERDICTS:
         raise ValueError(UNEXPECTED_STATUS_ERROR.format(status=status))
-    return STATUS_MESSAGE.format(name=name, verdict=HOMEWORK_VERDICTS[status])
+    return STATUS_MESSAGE.format(
+        name=homework['homework_name'], verdict=HOMEWORK_VERDICTS[status]
+    )
 
 
 def send_message(bot, message):
@@ -162,56 +152,33 @@ def send_message(bot, message):
             SEND_MESSAGE_ERROR.format(error=e, message=message))
 
 
-def handle_homework_response(bot, homeworks, last_message, timestamp,
-                             response):
-    """Обрабатывает успешный ответ от API и отправляет сообщение."""
-    if homeworks:
-        message = parse_status(homeworks[0])
+def main():
+    """Основная логика работы бота."""
+    check_tokens()
+    bot = TeleBot(token=TELEGRAM_TOKEN)
+    timestamp = int(time.time())
+    last_message = None
+
+    while True:
+        try:
+            response = get_api_answer(timestamp)
+            homeworks = check_response(response)
+            if homeworks:
+                message = parse_status(homeworks[0])
+                timestamp = response.get('current_date', timestamp)
+            else:
+                message = NO_NEW_STATUSES
+        except Exception as error:
+            message = PROGRAM_ERROR.format(error=error)
         if message != last_message:
             try:
                 send_message(bot, message)
                 last_message = message
             except SendMessageError as e:
                 logger.error(
-                    SEND_MESSAGE_ERROR.format(error=e, message=message))
-            timestamp = response.get('current_date', timestamp)
-    else:
-        logger.debug(NO_NEW_STATUSES)
-    return last_message, timestamp
-
-
-def handle_program_error(bot, error, last_message):
-    """Обрабатывает ошибки программы и отправляет сообщение об ошибке."""
-    message = PROGRAM_ERROR.format(error=error)
-    if message != last_message:
-        try:
-            send_message(bot, message)
-            last_message = message
-        except SendMessageError as e:
-            logger.error(
-                SEND_MESSAGE_ERROR.format(error=e, message=message))
-    return last_message
-
-
-def main():
-    """Основная логика работы бота."""
-    try:
-        check_tokens()
-    except MissingTokensError:
-        return
-    bot = TeleBot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time())
-    last_message = None
-    while True:
-        try:
-            response = get_api_answer(timestamp)
-            homeworks = check_response(response)
-            last_message, timestamp = handle_homework_response(
-                bot, homeworks, last_message, timestamp, response)
-        except ProgramError as error:
-            last_message = handle_program_error(bot, error, last_message)
-        finally:
-            time.sleep(RETRY_PERIOD)
+                    SEND_MESSAGE_ERROR.format(error=e, message=message)
+                )
+        time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
