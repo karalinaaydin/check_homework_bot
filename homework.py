@@ -163,20 +163,20 @@ def main():
             homeworks = check_response(response)
             if homeworks:
                 message = parse_status(homeworks[0])
-                timestamp = response.get('current_date', timestamp)
-            else:
-                logger.debug(NO_NEW_STATUSES)
-                message = None
+                if message != last_message:
+                    try:
+                        send_message(bot, message)
+                        last_message = message
+                        timestamp = response.get('current_date', timestamp)
+                    except SendMessageError as e:
+                        logger.error(
+                            SEND_MESSAGE_ERROR.format(error=e, message=message)
+                        )
         except Exception as error:
             message = PROGRAM_ERROR.format(error=error)
-        if message != last_message:
-            try:
+            if message != last_message:
                 send_message(bot, message)
                 last_message = message
-            except SendMessageError as e:
-                logger.error(
-                    SEND_MESSAGE_ERROR.format(error=e, message=message)
-                )
         time.sleep(RETRY_PERIOD)
 
 
