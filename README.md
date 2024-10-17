@@ -1,4 +1,4 @@
-Yandex Practicum Homework Status Checker Bot
+# Yandex Practicum Homework Status Checker Bot
 
 This project is a Telegram bot designed to automatically check the status of homework submissions on the Yandex Practicum platform. It leverages the Yandex Practicum API to track updates on submitted homework and notify users via a Telegram message when there is a change in status. Whether the homework has been reviewed, requires modifications, or has been accepted, the bot sends an instant update to keep you informed.
 
